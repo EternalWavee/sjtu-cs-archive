@@ -1,0 +1,73 @@
+   .MODEL SMALL
+   .DATA
+   .STACK 64
+   .CODE
+PortIn	EQU	80h	;定义输入端口号
+PortOut	EQU	88h	;定义输出端口号
+main proc far
+;Again:IN  AL,PortIn		;读取开关量状态
+;      NOT AL				;取反
+;      OUT PortOut,AL		;送显示
+;      JMP Again			;跳转循环执行
+     MOV AL,0FFH  	;先保证所有灯熄灭     
+     OUT PortOut,AL
+     CALL pause
+     MOV AL,36H       ; 状态0：东西红 + 南北红
+     OUT PortOut,AL
+     CALL pause
+S1:  MOV AL,33H       ; 状态1：南北绿 + 东西红
+     OUT Portout,AL
+     CALL delay		    ; 暂停一会儿，绿灯时间
+     
+
+     MOV CX,3
+S2:  MOV AL,33H		;状态2：南北黄灯亮，绿灯闪烁，东西红灯亮
+     OUT Portout,AL
+     call pause
+     MOV AL,37H
+     OUT Portout,AL
+     call pause
+     LOOP S2
+     MOV AL,35H
+     OUT Portout,AL
+     CALL pause
+     
+S3:  MOV AL,1EH		;状态3：南北红，东西绿
+     OUT Portout,AL
+     CALL delay			 
+     
+
+     MOV CX,3
+S4:  MOV AL,1EH		;状态4：东西黄灯亮，绿灯闪烁，南北红灯亮
+     OUT Portout,AL
+     call pause
+     MOV AL,3EH
+     OUT Portout,AL
+     call pause
+     LOOP S4     
+     MOV AL,2EH
+     OUT Portout,AL
+     CALL pause
+     
+     JMP S1
+main endp
+
+delay proc near
+    MOV CX,4		
+D2:
+    MOV DX, 0FF00H
+D1: DEC DX
+    JNZ D1
+    DEC CX
+    JNZ D2
+    RET
+delay endp
+
+pause proc near
+MOV DX, 0A000H
+D2:  DEC DX
+     JNZ D2     	    ; 暂停一会儿，大概两秒
+     RET
+pause endp
+
+END	main				;指示汇编程序结束编译
