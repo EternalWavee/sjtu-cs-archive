@@ -1,0 +1,159 @@
+% references.bib — KV Cache Memory Management in LLM Inference
+% Add / update entries as you find sources.
+
+% ── Core papers ─────────────────────────────────────────────
+
+@inproceedings{kwon2023vllm,
+  author    = {Woosuk Kwon and Zhuohan Li and Siyuan Zhuang and Ying Sheng
+               and Lianmin Zheng and Cody Hao Yu and Joseph E. Gonzalez
+               and Hao Zhang and Ion Stoica},
+  title     = {Efficient Memory Management for Large Language Model Serving
+               with {PagedAttention}},
+  booktitle = {Proceedings of the 29th ACM Symposium on Operating Systems
+               Principles (SOSP)},
+  year      = {2023},
+  pages     = {611--626},
+}
+
+@article{zheng2024sglang,
+  author    = {Lianmin Zheng and Liangsheng Yin and Zhiqiang Xie and
+               Jeffrey Nio and Chuyue Sun and others},
+  title     = {{SGLang}: Efficient Execution of Structured Language Model Programs},
+  journal   = {arXiv preprint arXiv:2312.07104},
+  year      = {2024},
+}
+
+@inproceedings{vaswani2017attention,
+  author    = {Ashish Vaswani and Noam Shazeer and Niki Parmar and
+               Jakob Uszkoreit and Llion Jones and Aidan N. Gomez and
+               {\L}ukasz Kaiser and Illia Polosukhin},
+  title     = {Attention Is All You Need},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  volume    = {30},
+  year      = {2017},
+}
+
+% ── Compression / eviction ──────────────────────────────────
+
+@inproceedings{zhang2023h2o,
+  author    = {Zhenyu Zhang and Ying Sheng and Tianyi Zhou and Tianlong Chen
+               and Lianmin Zheng and Ruisi Cai and Zhao Song and Yuandong Tian
+               and Christopher Re and Clark Barrett and Zhangyang Wang and
+               Beidi Chen},
+  title     = {{H2O}: Heavy-Hitter Oracle for Efficient Generative Inference
+               of Large Language Models},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2023},
+}
+
+@article{xiao2024streamingllm,
+  author    = {Guangxuan Xiao and Yuandong Tian and Beidi Chen and Song Han
+               and Mike Lewis},
+  title     = {Efficient Streaming Language Models with Attention Sinks},
+  journal   = {arXiv preprint arXiv:2309.17453},
+  year      = {2024},
+}
+
+% ── Grouped / Multi-Query Attention ─────────────────────────
+
+@article{shazeer2019mqa,
+  author  = {Noam Shazeer},
+  title   = {Fast Transformer Decoding: One Write-Head is All You Need},
+  journal = {arXiv preprint arXiv:1911.02150},
+  year    = {2019},
+}
+
+@inproceedings{ainslie2023gqa,
+  author    = {Joshua Ainslie and James Lee-Thorp and Michiel de Jong and
+               Yury Zemlyanskiy and Federico Lebron and Sumit Sanghai},
+  title     = {{GQA}: Training Generalised Multi-Query Transformer Models
+               from Multi-Head Checkpoints},
+  booktitle = {Proceedings of the 2023 Conference on Empirical Methods in
+               Natural Language Processing (EMNLP)},
+  year      = {2023},
+}
+
+% ── OS textbooks (for background / analogy section) ─────────
+
+@book{silberschatz2018os,
+  author    = {Abraham Silberschatz and Peter B. Galvin and Greg Gagne},
+  title     = {Operating System Concepts},
+  edition   = {10th},
+  publisher = {Wiley},
+  year      = {2018},
+}
+
+@book{tanenbaum2015modern,
+  author    = {Andrew S. Tanenbaum and Herbert Bos},
+  title     = {Modern Operating Systems},
+  edition   = {4th},
+  publisher = {Pearson},
+  year      = {2015},
+}
+
+% ── Continuous batching ─────────────────────────────────────
+
+@inproceedings{yu2022orca,
+  author    = {Gyeong-In Yu and Joo Seong Jeong and Geon-Woo Kim and
+               Soojeong Kim and Byung-Gon Chun},
+  title     = {Orca: A Distributed Serving System for
+               {Transformer-Based} Generative Models},
+  booktitle = {16th USENIX Symposium on Operating Systems Design
+               and Implementation (OSDI 22)},
+  year      = {2022},
+  pages     = {521--538},
+  publisher = {USENIX Association},
+}
+
+% ── Offloading ──────────────────────────────────────────────
+
+@inproceedings{sheng2023flexgen,
+  author    = {Ying Sheng and Lianmin Zheng and Binhang Yuan and
+               Zhuohan Li and Max Ryabinin and Beidi Chen and
+               Percy Liang and Christopher R\'{e} and Ion Stoica
+               and Ce Zhang},
+  title     = {{FlexGen}: High-Throughput Generative Inference of
+               Large Language Models with a Single {GPU}},
+  booktitle = {Proceedings of the 40th International Conference on
+               Machine Learning (ICML)},
+  year      = {2023},
+  pages     = {31094--31116},
+  publisher = {PMLR},
+}
+
+% ── KV cache eviction ───────────────────────────────────────
+
+@inproceedings{li2024snapkv,
+  author    = {Yuhong Li and Yingbing Huang and Bowen Yang and
+               Bharat Venkitesh and Acyr Locatelli and Hanchen Ye
+               and Tianle Cai and Patrick Lewis and Deming Chen},
+  title     = {{SnapKV}: {LLM} Knows What You Are Looking for
+               Before Generation},
+  booktitle = {Advances in Neural Information Processing Systems
+               (NeurIPS)},
+  volume    = {38},
+  year      = {2024},
+}
+
+% ── Inference efficiency / MQA context ──────────────────────
+
+@article{pope2022scaling,
+  author  = {Reiner Pope and Sholto Douglas and Aakanksha Chowdhery
+             and Jacob Devlin and James Bradbury and Anselm Levskaya
+             and Jonathan Heek and Kefan Xiao and Shivani Agrawal
+             and Jeff Dean},
+  title   = {Efficiently Scaling Transformer Inference},
+  journal = {arXiv preprint arXiv:2211.05102},
+  year    = {2022},
+}
+
+% ── LLaMA (for model specs in tables) ───────────────────────
+
+@article{touvron2023llama2,
+  author  = {Hugo Touvron and Louis Martin and Kevin Stone and
+             Peter Albert and Amjad Almahairi and Yasmine Babaei
+             and others},
+  title   = {{Llama 2}: Open Foundation and Fine-Tuned Chat Models},
+  journal = {arXiv preprint arXiv:2307.09288},
+  year    = {2023},
+}
