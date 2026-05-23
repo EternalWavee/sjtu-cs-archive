@@ -19,6 +19,7 @@ Data Structure|[CS0501](./CS0501/)|
 Problem Solving & Practice|[CS2309](./CS2309/)|
 Modern Operating Systems|[CS2311](./CS2311/)|
 Computer Architecture Lab|[CS2306](./CS2306/)|
+Operating System Design (C-Agent)|[CS2313](./CS2313/)|
 Discrete Mathematics|[CS2501](./CS2501/)|
 Calculus|[MATH1201(1202)/](./MATH1201(1202)/)|
 Probability & Statistics|[MATH1207](./MATH1207/)|
