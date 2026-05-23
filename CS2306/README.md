@@ -34,6 +34,30 @@
 输出：led_clk/en/do, seg_clk/en/do
 ```
 
+### Lab3 — 指令译码与 ALU (`CS2306Lab3/`)
+
+> `Ctr.v` — 控制单元，`ALUCtr.v` — ALU 控制码生成，`ALU.v` — 算术逻辑单元
+
+实现 MIPS 指令子集（R型、lw/sw/beq/j）的控制信号生成和 ALU 运算。ALU 支持加、与、或、减、符号比较、位或非六种操作。
+
+| 模块 | 功能 |
+|------|------|
+| `Ctr` | opCode → regDst/ALUSrc/MemtoReg/RegWrite/MemRead/MemWrite/Branch/ALUOp/Jump |
+| `ALUCtr` | ALUOp + funct → 4位 aluCtr |
+| `ALU` | 32位运算，含 zero 标志位 |
+
+### Lab4 — 寄存器堆与数据存储器 (`CS2306Lab4/`)
+
+> `Registers.v` — 32×32 寄存器堆，`dataMemory.v` — 64×32 数据存储，`signext.v` — 符号扩展
+
+MIPS 数据通路核心存储模块。寄存器堆采用双端口异步读、单端口同步写；数据存储器在时钟下降沿写入，组合逻辑读出。
+
+| 模块 | 说明 |
+|------|------|
+| `Registers` | 32个32位寄存器，写时钟为下降沿 |
+| `dataMemory` | 64个32位字，memRead/memWrite 控制读写 |
+| `signext` | 16位指令符号扩展为32位 |
+
 ---
 
 `.gitignore` 已配置，排除所有 Vivado 构建产物（`.cache/`、`.runs/`、`.sim/`、`.hw/` 等），仅保留源码、约束文件和实验报告 PDF。
