@@ -1,0 +1,31 @@
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date: 2026/05/19 08:39:48
+// Design Name: 
+// Module Name: signext
+// Project Name: 
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
+
+
+module signext(
+    input extOp,
+    input [15:0] inst,
+    output [31:0] data
+);
+
+    assign data = extOp ? {{16{inst[15]}}, inst} : {16'b0, inst};
+
+endmodule

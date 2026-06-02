@@ -58,6 +58,19 @@ MIPS 数据通路核心存储模块。寄存器堆采用双端口异步读、单
 | `dataMemory` | 64个32位字，memRead/memWrite 控制读写 |
 | `signext` | 16位指令符号扩展为32位 |
 
+### Lab5 — 处理器集成仿真 (`CS2306Lab5/`)
+
+> `Top.v` — 顶层模块，集成所有前序模块构成完整数据通路
+
+将 Lab3/4 的 ALU、控制单元、寄存器堆、数据存储器与新增的 PC、指令存储器模块整合，构建支持 R/I/J 型指令的简易 MIPS 处理器。
+
+| 新增模块 | 说明 |
+|------|------|
+| `PC` | 程序计数器，上升沿更新，支持同步复位 |
+| `InstMemory` | 指令存储器，64×32字，从 `Instruction` 文件加载机器码 |
+
+数据通路：PC → InstMemory → 译码(Ctr+ALUCtr) → 执行(ALU) → 访存(dataMemory) → 写回寄存器。控制信号覆盖 R 型、lw/sw、beq、j/jal/jr。
+
 ---
 
 `.gitignore` 已配置，排除所有 Vivado 构建产物（`.cache/`、`.runs/`、`.sim/`、`.hw/` 等），仅保留源码、约束文件和实验报告 PDF。
