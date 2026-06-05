@@ -1,0 +1,434 @@
+\documentclass[11pt,a4paper]{article}
+
+% ── Packages ──────────────────────────────────────────────
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\setCJKmainfont{Noto Serif CJK SC}
+\setCJKsansfont{Noto Sans CJK SC}
+\setCJKmonofont{Noto Sans Mono CJK SC}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tabularx}
+
+% ── Style ─────────────────────────────────────────────────
+\definecolor{codebg}{HTML}{F5F5F5}
+\definecolor{codeblue}{HTML}{2563EB}
+\definecolor{codegray}{HTML}{6B7280}
+\definecolor{accent}{HTML}{1E40AF}
+
+\lstset{
+  basicstyle=\small\ttfamily,
+  backgroundcolor=\color{codebg},
+  keywordstyle=\color{codeblue}\bfseries,
+  commentstyle=\color{codegray}\itshape,
+  stringstyle=\color{red!60!black},
+  breaklines=true,
+  frame=single,
+  framerule=0.3pt,
+  rulecolor=\color{gray!40},
+  xleftmargin=2em,
+  framexleftmargin=1.5em,
+  numbers=left,
+  numberstyle=\tiny\color{codegray},
+  numbersep=6pt,
+  tabsize=4,
+  language=C,
+  morekeywords={ToolDef,ToolResult,Agent,Context,ContextPolicy,LLMResponse,
+    cJSON,MessageList,SessionMeta,MemoryType,HookEvent,ToolFn,ToolCallView},
+}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=accent,
+  urlcolor=accent,
+}
+
+\titleformat{\section}
+  {\Large\bfseries\color{accent}}{\thesection}{1em}{}
+\titleformat{\subsection}
+  {\large\bfseries\color{accent!80}}{\thesubsection}{1em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{codegray}CS2313 Project 2 Report}
+\fancyhead[R]{\small\color{codegray}C-Agent: A Terminal AI Coding Agent}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Document ──────────────────────────────────────────────
+\begin{document}
+
+\begin{center}
+  {\LARGE\bfseries\color{accent} C-Agent: A Terminal AI Coding Agent}\\[6pt]
+  % {\Large C-Agent: A Terminal AI Coding Agent}\\[10pt]
+  {\large\color{codegray} CS2313 --- Operating Systems Course Project}\\[6pt]
+  {\normalsize Hengtao Wu \quad 524031910038 \quad \href{https://github.com/EternalWavee/c-agent}{\texttt{GitHub}}}\\[3pt]
+  {\scriptsize Source code is available at \href{https://github.com/EternalWavee/c-agent}{\texttt{github.com/EternalWavee/c-agent}}}\\[4pt]
+  {\normalsize June 2026}
+\end{center}
+\vspace{-1em}
+
+% ──────────────────────────────────────────────────────────
+\section{Architecture Overview}
+% ──────────────────────────────────────────────────────────
+
+C-Agent is a pure-C terminal coding assistant that follows the \textbf{ReAct}
+(Reason + Act) loop pattern. The user types a natural-language request; the
+agent forwards it to a remote LLM, executes whatever tools the LLM requests,
+feeds the results back, and prints the final answer. Although the handout only
+requires a basic coding agent, I intentionally treated the project as a small
+operating-system runtime for AI agents: it schedules tool calls, isolates file
+access, persists sessions, reclaims context memory, and exposes an extensible
+interface for future capabilities.
+
+\subsection{Module Map}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Module} & \textbf{Key Files} & \textbf{Responsibility} \\
+\midrule
+Agent      & \texttt{agent/agent.c}      & ReAct loop, context reclaim, UI sync \\
+LLM Client & \texttt{agent/llm\_client.c} & HTTP request construction, JSON response parsing \\
+Context    & \texttt{context/}           & Token budget tracking, offload \& summary policies \\
+Executor   & \texttt{tools/executor.c}   & Serial / parallel tool dispatch \\
+Registry   & \texttt{tools/registry.c}   & ToolDef dispatch table \\
+Sandbox    & \texttt{tools/sandbox.c}    & Path containment via \texttt{realpath} \\
+Session    & \texttt{session.c}          & Checkpoint + append-only log persistence \\
+Memory     & \texttt{memory.c}           & 6-type typed memory, proactive remember, manual consolidation \\
+Skills     & \texttt{skills.c}           & Progressive skill discovery and loading \\
+UI         & \texttt{ui/}               & Render thread, spinner, markdown output \\
+Hooks      & \texttt{hooks.c}           & Tool lifecycle event bus \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Data Flow}
+
+A single user request traverses the system as follows:
+
+\begin{enumerate}[leftmargin=2em]
+  \item \texttt{main.c} reads input; \texttt{cmd\_dispatch} handles \texttt{/} commands.
+  \item \texttt{agent\_chat} pushes the user message into the \texttt{Context}.
+  \item \texttt{ctx\_reclaim} checks token budget; triggers offload/summary if needed.
+  \item \texttt{llm\_chat} builds an HTTP/1.1 POST to \texttt{/api/v1/chat/completions},
+        including all registered \texttt{ToolDef} schemas discovered from the registry.
+  \item While the LLM returns tool calls: \texttt{executor\_run\_tools} dispatches them
+        (parallel if all read-only), pushes results, reclaims context, and calls the LLM again.
+  \item The final text reply passes through \texttt{ui\_idle()} (barrier) then
+        \texttt{ui\_print\_markdown()}.
+\end{enumerate}
+
+
+
+% ──────────────────────────────────────────────────────────
+\section{Key Design Decisions}
+% ──────────────────────────────────────────────────────────
+
+\subsection{Dispatch Table for Tool Registry}
+
+Inspired by OS syscall tables and VFS operation tables, each tool is a
+self-contained \texttt{ToolDef} struct bundling name, description, JSON schema,
+execution function pointer, and a \texttt{read\_only} scheduling hint. The
+registry is a flat array populated once at boot; at runtime, tool lookup is a
+linear scan over at most 16 entries. This design means \emph{adding a new tool
+requires zero changes to the agent loop or LLM client}---a critical property
+as the project grew from 1 tool (Part 1) to 16 tools (Part 3 + extensions).
+
+\begin{lstlisting}[title={ToolDef interface (tools/tools.h)}]
+typedef ToolResult (*ToolFn)(cJSON *args);
+
+typedef struct {
+    const char *name;
+    const char *desc;
+    const char *param_schema;  // JSON Schema string
+    ToolFn exec;
+    bool read_only;            // scheduling metadata
+} ToolDef;
+\end{lstlisting}
+
+\subsection{Conservative Parallel Scheduling}
+
+The executor uses a simple but correct rule: if \emph{all} tools in a batch are
+registered and \texttt{read\_only}, dispatch them as concurrent pthreads;
+otherwise fall back to serial execution. Each task writes only to its own slot
+\texttt{tasks[i].result}; the main thread reads all slots only after every
+worker joins. This preserves the \textbf{request-order invariant}
+(\texttt{out\_msgs[i]} corresponds to \texttt{tool\_calls[i]}) regardless of
+completion order---analogous to how CPUs may execute out-of-order but retire
+in-order.
+
+\subsection{Two-Layer Context Reclamation}
+
+Context management uses a policy engine with pluggable strategies:
+
+\begin{itemize}[leftmargin=2em]
+  \item \textbf{Offload policy} (lossless): When token usage exceeds
+        \texttt{OFFLOAD\_THRESHOLD} (default 0.8), large tool outputs are
+        written to session-local files under \texttt{.agent/offload/} and
+        replaced with compact placeholders containing recovery hints. The
+        policy also maintains an offload manifest recording each artifact's
+        path, size, and source message, so the agent can inspect what was
+        paged out and call \texttt{read\_file} to retrieve the full content on
+        demand.
+  \item \textbf{Summary policy} (lossy): When usage exceeds
+        \texttt{SUMMARY\_THRESHOLD}, a dedicated LLM call compresses old
+        messages into a structured handoff with sections like
+        \texttt{## Goal}, \texttt{## Completed}, \texttt{## Next Steps}.
+\end{itemize}
+
+Offload runs first because it is lossless and cheap; summary handles the
+remaining verbosity. This staged design mirrors virtual memory's
+\emph{page-out before OOM-kill} philosophy.
+
+\subsection{Sandbox: \texttt{realpath} over String Checks}
+
+Path validation uses \texttt{realpath(3)} rather than string-level
+\texttt{".."} detection. This correctly handles symlink attacks, paths like
+\texttt{foo/../../etc/passwd}, and absolute paths outside the workspace. For
+write targets that do not yet exist, the parent directory is resolved and
+checked, then the leaf is grafted back by string concatenation.
+
+\subsection{Session Persistence: Checkpoint + Append-Only Log}
+
+Sessions are organized as directories under
+\texttt{.agent/sessions/<session\_id>/}. Each directory contains metadata for
+UI display, a \texttt{checkpoint.json} full snapshot, and an append-only
+\texttt{log.jsonl} delta stream. Recovery replays the log on top of the latest
+checkpoint, while automatic checkpointing every 10 messages bounds recovery
+time. This directory-level organization also gives context offload a
+session-local namespace, so offloaded artifacts from different conversations do
+not get mixed together. All writes are atomic (write to \texttt{.tmp}, then
+\texttt{rename}) to survive crashes mid-write.
+
+
+% ──────────────────────────────────────────────────────────
+\section{Extensions Beyond the Handout}
+% ──────────────────────────────────────────────────────────
+
+The extra features were not added simply to increase the tool count. They were
+chosen to make the agent usable as a long-running development assistant. In
+particular, session persistence makes the REPL recoverable, memory preserves
+stable facts across conversations, skills reduce system-prompt bloat, web tools
+let the agent inspect current documentation, hooks decouple cross-cutting
+behavior from the executor, and markdown rendering makes the terminal output
+readable enough for daily use.
+
+At a higher level, these extensions turn the project from a one-shot ReAct
+demo into a \textbf{stateful agent runtime}. The design adds five production
+properties that are not usually visible in minimal agents: durable identity
+(memory), durable execution history (sessions), bounded context growth
+(offload/summary), capability modularity (skills and tool registry), and
+operational observability (hooks and synchronized UI). This framing was useful
+because each feature supports a system-level invariant rather than existing as
+an isolated bonus command.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Extension} & \textbf{Design Summary} \\
+\midrule
+SubAgent &
+  Thread pool (max 8). Each child is a \texttt{silent} Agent with its own
+  Context. \texttt{subagent\_wait} joins the thread and returns the result.
+  Intermediate output stays out of the parent's context window, so delegation
+  does not pollute the parent conversation. \\[4pt]
+Session &
+  Append-only JSONL log with periodic checkpoints. Interactive TUI selector
+  with arrow-key navigation, timestamps, and message counts. Supports
+  rename, tag, delete, and restore. Old single-file format auto-migrated,
+  making the storage layer backward compatible. \\[4pt]
+Memory &
+  6 typed files under \texttt{.agent/memory/}. The prompt asks the agent to
+  proactively remember durable user facts, preferences, project workflows, and
+  explicit corrections. \texttt{/memory} performs manual consolidation. On
+  startup, the agent injects only selected fact/preference memories into the
+  system prompt, so stable user identity and preferences are available in a new
+  session without loading the entire memory store. \\[4pt]
+Skill &
+  Progressive disclosure: startup injects only skill names and descriptions.
+  \texttt{load\_skill} fetches the full \texttt{SKILL.md} on demand. Project
+  skills override user skills with the same name, giving the runtime a
+  namespace and override model similar to configuration layers. \\[4pt]
+Web Access &
+  \texttt{web\_fetch} (curl wrapper) and \texttt{web\_search} (Bing RSS).
+  For JavaScript-heavy sites, the installed \texttt{agent-browser} skill can
+  render pages through Chrome. Private and localhost URLs are blocked, keeping
+  web access useful without exposing local services. \\[4pt]
+Hooks &
+  Event bus with \texttt{HOOK\_BEFORE\_TOOL} and \texttt{HOOK\_AFTER\_TOOL}.
+  Memory observation is registered as a hook, decoupling it from the
+  executor and making future cross-cutting features easier to add. \\[4pt]
+Dangerous Command Filter &
+  \texttt{bash} tool checks 16 patterns (\texttt{rm -rf /}, fork bomb,
+  \texttt{curl|sh}, etc.) before execution. \\[4pt]
+Markdown UI\footnotemark &
+  The UI uses MD4C to render markdown in the terminal and keeps spinner/tool
+  status output synchronized through a dedicated render thread. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\footnotetext{\footnotesize Thanks to \href{https://github.com/DaveGamble/cJSON}{\texttt{cJSON}}, the lightweight C JSON parser used in this project, and \href{https://github.com/mity/md4c}{\texttt{MD4C}}, the markdown parser used for terminal rendering.}
+
+% ──────────────────────────────────────────────────────────
+\section{Challenges and Solutions}
+% ──────────────────────────────────────────────────────────
+
+\textbf{Concurrent tool output interleaving.}
+When multiple read-only tools complete simultaneously, their
+\texttt{ui\_tool\_done} calls could interleave terminal output. The solution:
+a dedicated render thread owns all stdout via a mutex-protected event queue;
+the main thread only posts events. \texttt{ui\_idle()} acts as a barrier
+before the main thread reclaims output authority.
+
+\textbf{Context budget explosion.}
+Early versions triggered summary on every turn after the threshold was
+crossed, causing an LLM call per turn and sometimes hitting model rate limits.
+Another bug appeared when a recent browser snapshot was too large: summary kept
+recent messages, so the context could remain above the 32K window forever. Fix:
+\texttt{policy\_offload} now scans all tool messages, including recent large
+outputs, and \texttt{ctx\_reclaim} stops after the first policy that actually
+reduces token count.
+
+\textbf{Offload recovery loops.}
+If the LLM sees an offload placeholder and calls \texttt{read\_file} to
+recover it, the recovered content could be offloaded again next turn. Fix:
+\texttt{is\_offload\_recovery\_read} detects when a \texttt{read\_file} targets
+an offload path and skips re-offloading that message.
+
+\textbf{UTF-8 in tool output.}
+Some shell commands produce invalid UTF-8 (e.g.\ \texttt{xxd}, binary files).
+This corrupted the JSON body sent to the LLM. Fix:
+\texttt{sanitize\_utf8\_for\_json} in \texttt{llm\_client.c} replaces
+invalid sequences with \texttt{?} before serialization.
+
+\textbf{Session migration and selector usability.}
+The session format evolved from a single JSON file to a directory-based
+checkpoint+log format. \texttt{migrate\_old\_sessions} detects legacy files,
+converts them to the new layout, and removes the originals transparently on
+startup. The interactive selector also required practical fixes: empty
+\texttt{0 msg} sessions are filtered, session sizes are shown, and Chinese
+session names are aligned by UTF-8 display width instead of raw byte length.
+
+\textbf{Search and browser automation loops.}
+A naive Bing HTML parser failed on current result pages, causing the LLM to
+repeat \texttt{web\_search}, \texttt{web\_fetch}, and offload recovery in a
+loop. The final version uses Bing RSS (\texttt{format=rss}) for structured
+\texttt{title/link/description} entries and explicitly tells the agent not to
+fetch Bing result pages repeatedly. For SPA pages, the installed
+\texttt{agent-browser} skill renders the page with Chrome; on Linux it must run
+with \texttt{--no-sandbox}, which is documented as an operational constraint.
+
+% ──────────────────────────────────────────────────────────
+\section{Effort Estimation vs.\ Reality}
+% ──────────────────────────────────────────────────────────
+
+\begin{center}
+\small
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Phase} & \textbf{Estimated} & \textbf{Actual} & \textbf{Notes} \\
+\midrule
+Part 1 Phase A (LLM + bash)     & 4h  & 6h  & JSON parsing edge cases \\
+Part 1 Phase B (ReAct loop)     & 2h  & 2h  & Straightforward extension \\
+Part 1 Phase C (REPL + TUI)     & 3h  & 4h  & Render thread sync tricky \\
+Part 2 Phase A (Registry)       & 3h  & 3h  & Clean refactor \\
+Part 2 Phase B (Parallel)       & 2h  & 3h  & TSan debugging \\
+Part 3 Context Management       & 4h  & 7h  & Recent huge tool outputs, recovery loops \\
+Extensions (all)                & 8h  & 18h & Memory, sessions, skills, browser/web, markdown UI \\
+\midrule
+\textbf{Total}                  & 26h & 45h & \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The largest surprise was the \textbf{interaction surface} between extensions.
+Session persistence needed to coordinate with context offload (which session
+directory to use), memory needed hooks in the executor, web/browser outputs
+changed the behavior of context reclamation, and the system prompt had to
+dynamically assemble memory, skills, web guidance, and context hints. Each
+extension was individually simple, but their composition required careful
+ordering and shared-state management. In retrospect, the project was less about
+writing isolated C functions and more about designing invariants: every tool
+result must remain recoverable, every persisted session must be replayable, and
+every background subsystem must not corrupt the main conversation.
+
+% ──────────────────────────────────────────────────────────
+\section{Course Improvement Suggestions}
+% ──────────────────────────────────────────────────────────
+
+\begin{enumerate}[leftmargin=2em]
+  \item \textbf{Provide a proxy-aware test harness.} Students behind HTTP
+        proxies (common in lab environments) will see mysterious 502 errors.
+        The test runner should unset proxy variables or set
+        \texttt{NO\_PROXY=localhost} automatically.
+
+  \item \textbf{Add a concurrency stress test.} The current parallel test
+        checks correctness and coarse speedup, but does not exercise
+        thread-safety under contention. A test that fires 8 concurrent
+        \texttt{write\_file} calls to the same file would catch missing locks.
+
+  \item \textbf{Clarify the \texttt{tools\_advertised} test expectation.}
+        The test checks for an exact 4-tool set, but extensions naturally
+        register more tools. A \texttt{superset} check (expected
+        $\subseteq$ actual) would allow extensions without penalty.
+
+  \item \textbf{Provide a reference mock server protocol.} Understanding the
+        mock's scripted response format consumed significant debugging time.
+        A documented example of the request/response deck format would help.
+
+  \item \textbf{Separate baseline tests from extension tests.} My final system
+        intentionally registers many extra tools, web access, skills, memory,
+        and hooks. A separate extension phase would let students demonstrate
+        extra engineering work without conflicting with tests that assume the
+        minimal baseline tool set.
+
+  \item \textbf{Introduce a gradual difficulty curve for extensions.} The jump
+        from ``basic agent'' to ``full coding assistant with memory, sessions,
+        skills, and subagents'' is large. Scaffolding one extension as a
+        guided tutorial would improve learning outcomes.
+\end{enumerate}
+
+% ──────────────────────────────────────────────────────────
+
+\section{Conclusion}
+% ──────────────────────────────────────────────────────────
+
+The final implementation is more than a minimal ReAct loop: it is a small
+runtime for terminal-based AI assistance. The core OS ideas from the course map
+naturally onto the design. The tool registry resembles a syscall table, the
+executor schedules read-only work in parallel while preserving ordered results,
+the sandbox enforces path containment, session storage uses crash-resistant
+atomic persistence, and context management behaves like a memory reclamation
+layer with lossless offload followed by lossy summary.
+
+The extensions were built to support long-running, stateful use rather than
+one-shot demos. Memory makes stable user facts and preferences available across
+new sessions, session directories make conversations replayable and isolate
+offloaded artifacts, skills provide progressive capability loading without
+inflating the base prompt, and web/browser support lets the agent inspect
+external resources when local context is insufficient. These features made the
+system more complex, but they also forced clearer invariants: tool results must
+remain recoverable, persisted sessions must be replayable, and background
+subsystems must not corrupt the main conversation.
+
+The behavior-oriented public tests pass, including context offload and summary
+(\texttt{test-ca}, \texttt{test-cb}, and C unit tests).\footnote{\footnotesize
+In the aggregate \texttt{make test} run, the remaining public mismatch is the
+baseline \texttt{tools\_advertised} check. It asserts that exactly the four
+required tools are advertised, while this extended version deliberately exposes
+sixteen tools. This is a strict baseline-interface assertion, not a failure of
+offload, summary, parallel execution, or file operations.} Overall, the
+project demonstrates how OS-level design principles can make an LLM agent more
+bounded, recoverable, and maintainable in real interactive use.
+
+\end{document}
