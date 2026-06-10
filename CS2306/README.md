@@ -71,6 +71,18 @@ MIPS 数据通路核心存储模块。寄存器堆采用双端口异步读、单
 
 数据通路：PC → InstMemory → 译码(Ctr+ALUCtr) → 执行(ALU) → 访存(dataMemory) → 写回寄存器。控制信号覆盖 R 型、lw/sw、beq、j/jal/jr。
 
----
+### Lab6 — 五级流水线与冒险处理 (`CS2306Lab6/`)
 
-`.gitignore` 已配置，排除所有 Vivado 构建产物（`.cache/`、`.runs/`、`.sim/`、`.hw/` 等），仅保留源码、约束文件和实验报告 PDF。
+> `Top.v` — 完整五级流水线 MIPS 处理器，`hazard.v` — 前推与冒险检测单元
+
+在 Lab5 单周期基础上引入流水线划分，实现 IF/ID/EX/MEM/WB 五级流水。数据前推解决 RAW 冒险，冒险检测单元在 load-use 发生时插入 stall，分支 flush 机制处理分支延迟。
+
+| 新增模块 | 说明 |
+|------|------|
+| `hazard` (forwarding + hazard_detection_unit) | EX/MEM/WB 三级前推选路，stall 信号生成 |
+| `if_id` / `id_ex` / `ex_mem` / `mem_wb` | 流水线寄存器，传递控制信号与数据 |
+| `instruction_memory` / `registers` / `data_memory` | 存储访问（时钟沿驱动） |
+
+支持 R/I/J 型指令，含 beq/bne 条件分支、jr 跳转、jal 保存返回地址。
+
+---
