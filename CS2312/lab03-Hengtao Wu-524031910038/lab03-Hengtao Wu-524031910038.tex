@@ -1,0 +1,362 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{ctex}
+\usepackage{amsmath,amscd,amsbsy,amssymb,latexsym,url,bm,amsthm}
+\usepackage{epsfig,graphicx,subfigure}
+\usepackage{enumitem,balance}
+\usepackage{wrapfig}
+\usepackage{mathrsfs,euscript}
+\usepackage[usenames]{xcolor}
+\usepackage{hyperref}
+\usepackage[vlined,ruled,linesnumbered]{algorithm2e}
+\hypersetup{colorlinks=true,linkcolor=black}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{setspace}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{exercise}{Exercise}
+\newtheorem*{solution}{Solution}
+\newtheorem{definition}{Definition}
+\theoremstyle{definition}
+
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+
+\newcommand{\postscript}[2]
+ {\setlength{\epsfxsize}{#2\hsize}
+  \centerline{\epsfbox{#1}}}
+
+\renewcommand{\baselinestretch}{1.0}
+
+\setlength{\oddsidemargin}{-0.365in}
+\setlength{\evensidemargin}{-0.365in}
+\setlength{\topmargin}{-0.3in}
+\setlength{\headheight}{0in}
+\setlength{\headsep}{0in}
+\setlength{\textheight}{10.1in}
+\setlength{\textwidth}{7in}
+\makeatletter \renewenvironment{proof}[1][Proof] {\par\pushQED{\qed}\normalfont\topsep6\p@\@plus6\p@\relax\trivlist\item[\hskip\labelsep\bfseries#1\@addpunct{.}]\ignorespaces}{\popQED\endtrivlist\@endpefalse} \makeatother
+\makeatletter
+\renewenvironment{solution}[1][Solution] {\par\pushQED{\qed}\normalfont\topsep6\p@\@plus6\p@\relax\trivlist\item[\hskip\labelsep\bfseries#1\@addpunct{.}]\ignorespaces}{\popQED\endtrivlist\@endpefalse} \makeatother
+
+\begin{document}
+\noindent
+
+%========================================================================
+\noindent\framebox[\linewidth]{\shortstack[c]{
+\Large{\textbf{Lab03-Dynamic Programming}}\vspace{1mm}\\
+CS2312-Algorithm and complexity, Xiaofeng Gao, Spring 2026.}}
+\begin{center}
+\footnotesize{\color{red}$*$ Contact TA Steven Chen for any questions. Include both your .pdf and .tex files in the uploaded .rar or .zip file.}
+
+% Please write down your name, student id and email.
+\footnotesize{\color{blue}$*$ Name:Hengtao Wu  \quad Student ID:524031910038 \quad Email: Eternity\_w@sjtu.edu.cn}
+\end{center}
+
+
+\begin{enumerate}
+    % -------------------------------
+    % Question 1
+    % -------------------------------
+    \item {\color{purple}{(Longest Special Bitonic Subsequence)}}
+    
+    Recall the notion of a bitonic sequence discussed in class (e.g., in the context of sorting networks). Suppose you are given a sequence of $n$ integers $\{x_1, x_2, \dots, x_n\}$, where $x_i \in \mathbb{Z}$.
+    
+    We define a \textit{special bitonic subsequence} as a subsequence in which every monotonically increasing or decreasing segment has length exactly $2$.
+    
+    \begin{minipage}{0.4\textwidth}
+        \[
+            \operatorname{sgn}(x) =
+            \begin{cases}
+            -1 & x < 0 \\
+            0 & x = 0 \\
+            1 & x > 0
+            \end{cases}
+        \]
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.55\textwidth}
+        \textbf{Ex 1:} $\langle 6, 9, 4, 2, 3, 5 \rangle$ has multiple valid optimal subsequences:
+        
+        $\langle 6, 9, 2, 3 \rangle$, $\langle 6, 9, 2, 5 \rangle$, and $\langle 6, 9, 4, 5 \rangle$.
+    \end{minipage}
+
+    \begin{enumerate}
+        \item Express your DP algorithm using the standard recurrence template. 
+        
+        \item Design a DP algorithm that computes the length of the longest special bitonic subsequence in $O(n)$ time. Provide pseudocode and briefly justify your running time.
+
+        {\color{red}{(Hint: A useful helper is the \textit{signum function}, defined as above)}}
+    \end{enumerate}
+    \begin{solution}
+        \begin{enumerate}
+        \item
+        We define $Up[i]$ as the length of the longest valid special
+        bitonic subsequence ending with an \emph{ascent} at position
+        $i$ (i.e.\ $x_{i-1} < x_i$), and $Down[i]$ as the length of
+        the longest such subsequence ending with a \emph{descent} at
+        position $i$ (i.e.\ $x_{i-1} > x_i$).
+
+        Because every monotone segment must have length \emph{exactly}
+        2, each transition appends exactly one new element by reversing
+        direction; hence we only need to compare $x_i$ with its
+        immediate predecessor $x_{i-1}$.
+
+        \textbf{Base case:}
+        \[
+            Up[1] = Down[1] = 1.
+        \]
+
+        \textbf{Recurrence:}
+        \[
+            Up[i] =
+            \begin{cases}
+                Down[i-1] + 1 & \text{if } \operatorname{sgn}(x_i - x_{i-1}) = 1, \\
+                Up[i-1]       & \text{otherwise.}
+            \end{cases}
+        \]
+        \[
+            Down[i] =
+            \begin{cases}
+                Up[i-1] + 1 & \text{if } \operatorname{sgn}(x_i - x_{i-1}) = -1, \\
+                Down[i-1]   & \text{otherwise.}
+            \end{cases}
+        \]
+
+        \textbf{Goal:} $\max(Up[n],\, Down[n])$.
+
+        \item
+        The pseudocode is given below.
+        
+        \textbf{Note on update order:} the two branches are mutually
+        exclusive (only one of $s=1$ or $s=-1$ can hold at a time),
+        so updating $UP$ and $DOWN$ in place does not cause stale-value
+        issues.
+
+        \textbf{Time complexity:} The loop runs $n-1$ times and each
+        does $O(1)$, giving $O(n)$ overall.\\
+        \textbf{Space complexity:} Only two scalar variables are
+        maintained, giving $O(1)$ auxiliary space.
+        
+        \begin{minipage}{\linewidth}
+        \begin{algorithm}[H]
+        \caption{Longest Special Bitonic Subsequence ($O(n)$ time, $O(1)$ space)}
+        \label{alg:lsbs}
+        \KwIn{An array of $n$ integers $X = \{x_1, x_2, \dots, x_n\}$}
+        \KwOut{Length of the longest special bitonic subsequence}
+        $UP   \gets 1$\;
+        $DOWN \gets 1$\;
+        \For{$i \gets 2$ \KwTo $n$}{
+            $s \gets \operatorname{sgn}(x_i - x_{i-1})$\;
+            \uIf{$s = 1$}{
+                $UP \gets DOWN + 1$\;
+            }
+            \uElseIf{$s = -1$}{
+                $DOWN \gets UP + 1$\;
+            }
+            \tcp{$s = 0$: equal elements, no update needed}
+        }
+        \Return{$\max(UP,\, DOWN)$}\;
+        \end{algorithm}
+        \end{minipage}
+
+    \end{enumerate}
+\end{solution}
+
+    % -------------------------------
+    % Question 2
+    % -------------------------------
+    \item {\color{purple}{(Windy World DP)}}
+    
+    An agent is placed in a $m \times n$ grid. The start state is $(0,0)$ and the goal state is $(m-1, n-1)$. The agent cannot move outside the grid. At each step, the agent may take one of the following actions:
+    \[
+    a_1: (i,j)\rightarrow(i,j+1) \quad \text{(right)}, \qquad
+    a_2: (i,j)\rightarrow(i+1,j) \quad \text{(down)}.
+    \]
+    
+    In addition, the agent is pushed 1 cell to the right whenever it enters a cell in the ``windy" rows. The row numbers of the ``windy" rows are stored in an array $w$.  The task is to compute the number of distinct paths from the start to the goal.
+
+    \begin{enumerate}
+        \item Design a recursive algorithm to compute the number of valid paths. Provide pseudocode.
+    
+        \item Improve your solution using memoization or tabulation. Compare it with the recursive approach in terms of time and space complexity.
+    \end{enumerate}
+
+    \begin{solution}
+        \begin{enumerate}
+            \item The pesudo code is shown as below. We assume that the value of w in windy's row is 1, otherwise 0. 
+
+        \begin{minipage}{\linewidth}
+        \begin{algorithm}[H]
+        \caption{Windy World Valid Paths (Recursive)}
+        \label{alg:WW_Recursive}
+        \KwIn{Current row $i$, current column $j$, wind array $w$}
+        \KwOut{Number of valid paths reaching $(i,j)$}
+        \uIf{$i < 0$ \textbf{or} $j < 0$}{\Return $0$\;}
+        \uIf{$i = 0$ \textbf{and} $j = 0$}{\Return $1$\;}
+        \uIf{$w[i] = 1$}{
+            \tcp{$(i,0)$ is unreachable in a windy row}
+            \lIf{$j = 0$}{\Return $0$}
+            \Return $\text{WW}(i-1,\,j-1,\,w)
+                   + \text{WW}(i,\,j-2,\,w)$\;
+        }
+        \Else{
+            \Return $\text{WW}(i-1,\,j,\,w)
+                   + \text{WW}(i,\,j-1,\,w)$\;
+        }
+        \end{algorithm}
+        \end{minipage}
+
+        \textbf{Usage:} call $\text{WW}(m-1,\,n-1,\,w)$.
+            \item 
+            \textbf{Improvement Strategy:}
+
+            We improve the algorithm using \textbf{Tabulation}. Instead of recursively solving from the goal state and redundantly calculating overlapping subproblems, we iteratively build the solution from the start state $(0,0)$ to the goal state $(m-1, n-1)$ using a 2D array $path[m][n]$.
+            
+            \vspace{0.5em}
+            \textbf{Complexity Comparison:}
+            
+            \begin{itemize}
+                \item \textbf{The Recursive Approach:}
+                \begin{itemize}
+                    \item \textbf{Time Complexity:} $\mathcal{O}(2^{m+n})$. At each step, the algorithm branches into two separate recursive calls. Because it does not store previously computed results, it recalculates the same overlapping subproblems multiple times, leading to exponential time complexity.
+                    \item \textbf{Space Complexity:} $\mathcal{O}(m+n)$. This is determined by the maximum depth of the recursion call stack, which corresponds to the longest possible path from the goal $(m-1, n-1)$ back to the start $(0,0)$.
+                \end{itemize}
+                
+                \vspace{0.5em}
+                \item \textbf{The Tabulation Approach (DP):}
+                \begin{itemize}
+                    \item \textbf{Time Complexity:} $\mathcal{O}(m \cdot n)$. We use two nested loops to iterate through the entire $m \times n$ grid exactly once. At each cell, the state transition takes $\mathcal{O}(1)$ constant time.
+                    \item \textbf{Space Complexity:} $\mathcal{O}(m \cdot n)$. The algorithm requires an explicit 2D array of size $m \times n$ to store the number of valid paths. \textit{(Note: Space complexity can be further optimized to $\mathcal{O}(n)$ using a 1D rolling array).}
+                \end{itemize}
+            \end{itemize}
+            
+            \vspace{1em}
+            The optimized pseudocode is shown as below :
+            
+            \begin{minipage}{\linewidth}
+            \begin{algorithm}[H]
+            \caption{Windy World Valid Paths (Tabulation)}
+            \label{alg:WW_DP}
+            \KwIn{Grid dimensions $m\times n$, wind array $w$}
+            \KwOut{Total number of valid paths to $(m-1,n-1)$}
+            Initialize $path[m][n]$ with all $0$s\;
+            $path[0][0] \gets 1$\;
+            \For{$i \gets 0$ \KwTo $m-1$}{
+                \For{$j \gets 0$ \KwTo $n-1$}{
+                    \lIf{$i=0$ \textbf{and} $j=0$}{\textbf{continue}}
+                    \uIf{$w[i] = 1$}{
+                        \lIf{$j = 0$}{$path[i][j] \gets 0$}
+                        \Else{
+                            $v_1 \gets (i \ge 1 \text{ and } j \ge 1)
+                                       \mathbin{?} path[i-1][j-1] : 0$\;
+                            $v_2 \gets (j \ge 2)
+                                       \mathbin{?} path[i][j-2]   : 0$\;
+                            $path[i][j] \gets v_1 + v_2$\;
+                        }
+                    }
+                    \Else{
+                        $v_1 \gets (i \ge 1) \mathbin{?} path[i-1][j] : 0$\;
+                        $v_2 \gets (j \ge 1) \mathbin{?} path[i][j-1] : 0$\;
+                        $path[i][j] \gets v_1 + v_2$\;
+                    }
+                }
+            }
+            \Return $path[m-1][n-1]$\;
+            \end{algorithm}
+            \end{minipage}
+            
+        \end{enumerate}
+    \end{solution}
+    \newpage
+    % -------------------------------
+    % Question 3
+    % -------------------------------
+    \item {\color{purple}(LP)}
+
+    A grass carp farm must determine a daily feeding plan that minimizes cost while satisfying nutritional requirements. Each day, the fish must receive at least the following amounts of nutrients:
+    \vspace{-0.1cm}
+    \begin{center}
+    \begin{tabular}{|c|c|c|}
+    \hline
+    Nutrient type & Nutrient A & Nutrient B \\
+    \hline
+    Required (\% of total biomass $W$) & 10\% & 6\% \\
+    \hline
+    \end{tabular}
+    \end{center}
+    \vspace{-0.1cm}
+    Two types of feed are available:
+    
+    
+    \begin{center}
+    \begin{tabular}{|c|c|c|c|}
+    \hline
+    Feed type & Cost (\$/kg) & Nutrient A (per kg) & Nutrient B (per kg) \\
+    \hline
+    Water plants & 5 & 0.6 & 0.2 \\
+    Commercial fish feed & 10 & 0.2 & 0.7 \\
+    \hline
+    \end{tabular}
+    \end{center}
+    \vspace{-0.1cm}
+    Determine a feeding strategy that meets the nutritional requirements at minimum cost.
+    
+    \begin{enumerate}
+        \item Formulate the problem as a linear program.
+        \item Solve the linear program. Express the minimum daily cost as a function of the total biomass $W$.
+    \end{enumerate}
+
+    \begin{solution}
+        \begin{enumerate}
+        \item \textbf{Linear Program Formulation}
+    
+        Let $x_1$ be the daily amount of water plants used (in kg), 
+        and $x_2$ be the daily amount of commercial fish feed used (in kg).
+        
+        \begin{align*}
+            \min \quad & Z = 5x_1 + 10x_2 \\
+            \text{s.t.} \quad 
+            & 0.6x_1 + 0.2x_2 \geq 0.10W \\
+            & 0.2x_1 + 0.7x_2 \geq 0.06W \\
+            & x_1,\, x_2 \geq 0
+        \end{align*}
+    
+        \item \textbf{Solving the Linear Program}
+    
+        The feasible region is the intersection of two half-planes 
+        (above each constraint line) in the first quadrant, which is 
+        a convex set unbounded toward the upper right. Since the 
+        objective function increases in that direction, the minimum 
+        occurs at the unique finite vertex, i.e.\ the intersection 
+        of the two active constraints:
+        \begin{align}
+            0.6x_1 + 0.2x_2 &= 0.10W \label{eq:A}\\
+            0.2x_1 + 0.7x_2 &= 0.06W \label{eq:B}
+        \end{align}
+        From \eqref{eq:A}: $x_2 = 0.5W - 3x_1$. Substituting into \eqref{eq:B}:
+        \[
+            0.2x_1 + 0.7(0.5W - 3x_1) = 0.06W
+            \implies -1.9x_1 = -0.29W
+            \implies x_1^* = \frac{29}{190}W
+        \]
+        \[
+            x_2^* = 0.5W - 3\cdot\frac{29}{190}W = \frac{4}{95}W
+        \]
+        The minimum daily cost is:
+        \[
+            Z^* = 5\cdot\frac{29}{190}W + 10\cdot\frac{4}{95}W
+                = \frac{145}{190}W + \frac{80}{190}W
+                = \frac{45}{38}W
+        \]
+    \end{enumerate}
+    \end{solution}
+
+
+    
+\end{enumerate}
+%========================================================================
+\end{document}

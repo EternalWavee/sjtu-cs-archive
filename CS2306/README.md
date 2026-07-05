@@ -84,5 +84,3 @@ MIPS 数据通路核心存储模块。寄存器堆采用双端口异步读、单
 | `instruction_memory` / `registers` / `data_memory` | 存储访问（时钟沿驱动） |
 
 支持 R/I/J 型指令，含 beq/bne 条件分支、jr 跳转、jal 保存返回地址。
-
----

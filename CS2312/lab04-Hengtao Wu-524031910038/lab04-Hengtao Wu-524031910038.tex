@@ -1,0 +1,311 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{ctex}
+\usepackage{amsmath,amscd,amsbsy,amssymb,latexsym,url,bm,amsthm}
+\usepackage{epsfig,graphicx,subfigure}
+\usepackage{enumitem,balance}
+\usepackage{wrapfig}
+\usepackage{mathrsfs,euscript}
+\usepackage[usenames]{xcolor}
+\usepackage{hyperref}
+\usepackage[vlined,ruled,linesnumbered]{algorithm2e}
+\hypersetup{colorlinks=true,linkcolor=black}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{setspace}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{exercise}{Exercise}
+\newtheorem*{solution}{Solution}
+\newtheorem{definition}{Definition}
+\theoremstyle{definition}
+
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+
+\newcommand{\postscript}[2]
+ {\setlength{\epsfxsize}{#2\hsize}
+  \centerline{\epsfbox{#1}}}
+
+\renewcommand{\baselinestretch}{1.0}
+
+\setlength{\oddsidemargin}{-0.365in}
+\setlength{\evensidemargin}{-0.365in}
+\setlength{\topmargin}{-0.3in}
+\setlength{\headheight}{0in}
+\setlength{\headsep}{0in}
+\setlength{\textheight}{10.1in}
+\setlength{\textwidth}{7in}
+\makeatletter \renewenvironment{proof}[1][Proof] {\par\pushQED{\qed}\normalfont\topsep6\p@\@plus6\p@\relax\trivlist\item[\hskip\labelsep\bfseries#1\@addpunct{.}]\ignorespaces}{\popQED\endtrivlist\@endpefalse} \makeatother
+\makeatletter
+\renewenvironment{solution}[1][Solution] {\par\pushQED{\qed}\normalfont\topsep6\p@\@plus6\p@\relax\trivlist\item[\hskip\labelsep\bfseries#1\@addpunct{.}]\ignorespaces}{\popQED\endtrivlist\@endpefalse} \makeatother
+
+\begin{document}
+\noindent
+
+%========================================================================
+\noindent\framebox[\linewidth]{\shortstack[c]{
+\Large{\textbf{Lab04-Amortized\&Graph}}\vspace{1mm}\\
+CS2312-Algorithm and complexity, Xiaofeng Gao, Spring 2026.}}
+\begin{center}
+\footnotesize{\color{red}$*$ Contact TA Yixuan Cai for any questions. Include both your .pdf and .tex files in the uploaded .rar or .zip file.}
+
+% Please write down your name, student id and email.
+\footnotesize{\color{blue}$*$ Name:Hengtao Wu  \quad Student ID:524031910038 \quad Email: Eternity\_w@sjtu.edu.cn}
+\end{center}
+
+\begin{enumerate}
+  \item {\color{purple}(Amortized
+   in special data structure)} Consider a special data structure consists of $k$ irrelevant (i.e. elements in different arrays do not have sequence constraint) non-decreasing arrays $A_0, A_1, \cdots, A_{k-1}$. The size of array $A_i$ is $2^i$. At any time, any array is either full or empty. Suppose the total number of elements is $n$. How can we insert an element into such data structure? Please analyze the time cost in the worst case and the amortized time cost. Inserting or deleting an element from an array can be regarded as a meta operation.
+
+    \begin{solution}
+    
+        \textbf{1. Insertion Algorithm}
+
+Suppose the data structure currently holds $n$ elements. To insert a new element (the $(n+1)$-th element), we perform the following steps:
+\begin{enumerate}
+    \item Find the smallest index $i$ such that array $A_i$ is currently \textbf{empty}.
+    \item Because $A_i$ is the first empty array, all preceding arrays $A_0, A_1, \dots, A_{i-1}$ must be \textbf{full}.
+    \item \textbf{Delete} all elements from $A_0, A_1, \dots, A_{i-1}$. The total number of elements extracted is:
+    $$ \sum_{j=0}^{i-1} 2^j = 2^i - 1 $$
+    \item Combine these $2^i - 1$ extracted elements with the $1$ new element to form a new set of exactly $2^i$ elements.
+    \item \textbf{Insert} these $2^i$ elements into array $A_i$, making it full.
+\end{enumerate}
+
+\textbf{2. Worst-Case Time Cost}
+
+The worst-case scenario occurs when all existing arrays are full. This happens when $n = 2^k - 1$ (i.e., the binary representation of $n$ consists of $k$ consecutive 1s).
+To insert the $(n+1)$-th element, we must find the first empty array, which will be $A_k$.We must delete all $n$ elements from $A_0, \dots, A_{k-1}$, resulting in $n$ \textit{delete} meta-operations.We then insert the $n$ old elements plus the $1$ new element into $A_k$, resulting in $n+1$ \textit{insert} meta-operations.
+
+\textbf{Total worst-case cost:} $n + (n + 1) = 2n + 1$ meta-operations. \\
+\textbf{Worst-case time complexity:} $\mathcal{O}(n)$.
+
+\textbf{3. Amortized Time Cost (Aggregate Analysis)}
+
+We can analyze the amortized cost by calculating the total cost of continuously inserting $n$ elements starting from an empty data structure. We count the total number of \textit{Insert} and \textit{Delete} meta-operations separately.
+
+\begin{itemize}
+    \item \textbf{Total Insertions:} An element is inserted into $A_i$ every time $A_i$ is filled. This occurs once every $2^i$ operations. When it happens, exactly $2^i$ elements are inserted. 
+    $$ \text{Total inserts for } A_i \le \frac{n}{2^i} \times 2^i = n $$
+    Since there are at most $\approx \log_2 n$ arrays, the total number of insert operations across all arrays is bounded by $n \log_2 n$.
+    
+    \item \textbf{Total Deletions:} An array $A_i$ is emptied every time it contributes to a "carry-over" to fill $A_{i+1}$. This occurs once every $2^{i+1}$ operations. When it happens, $2^i$ elements are deleted from $A_i$.
+    $$ \text{Total deletes for } A_i \le \frac{n}{2^{i+1}} \times 2^i = \frac{n}{2} $$
+    Summing this over all $\approx \log_2 n$ arrays, the total number of delete operations is bounded by $\frac{n}{2} \log_2 n$.
+\end{itemize}
+
+\textbf{Final Amortized Cost:}
+
+The total number of meta-operations over $n$ successive insertions is the sum of all inserts and deletes:
+$$ \text{Total Operations} \le n \log_2 n + \frac{n}{2} \log_2 n = 1.5n \log_2 n $$
+To find the \textbf{amortized cost per operation}, we divide the total cost by $n$:
+$$ \text{Amortized Cost} \le \frac{1.5n \log_2 n}{n} = 1.5 \log_2 n $$
+\textbf{Amortized time complexity:} $\mathcal{O}(\log n)$.
+    \end{solution}
+
+   \item {\color{purple}(DFS\&BFS)} Let $G = (V, E)$ be a graph and $s$ be a vertex such that there is a path from s to each $u \in V$ . We say $G$ is a \textbf{good graph} if there exists a tree $T = (V, E′)$ that share the same vertex set $V$ with $G$ such that $T$ is both a depth-first search tree and a breadth-first  search tree.
+    \begin{enumerate}
+        \item If $G$ is an undirected graph, prove that $G$ is a \textbf{good graph} if and only if $G$ is a tree.
+        \item If $G$ is a \textbf{good directed acyclic graph}, prove or disprove that the vertex set $V$ can be sorted in an array $L$ such that $L$ is both an non-decreasing order of the distances from $s$ and a topological order.
+    \end{enumerate}
+
+    \begin{solution}
+        \begin{enumerate}
+            \item 
+                \begin{enumerate}
+                    \item \textbf{Sufficiency ($\Leftarrow$):} 
+                If $G$ is a tree, obviously its DFS tree is the same as its BFS tree, namely it is a \textbf{good graph}.
+                
+                \textbf{Necessity ($\Rightarrow$):}
+                    We prove by contradiction. Assume $G$ is a good graph but not a tree, so $G$ contains a cycle $C = (x, u_1, u_2, \dots, u_k, x)$ where $k \ge 2$. Let $x$ be the vertex on $C$ with minimum depth in $T$.
+                \begin{itemize}
+                    \item \textbf{Key lemma:} In an undirected DFS, all non-tree edges are back edges (no cross edges exist). This is because when edge $\{u,v\}$ is explored, one endpoint is already an ancestor of the other.
+                    
+                    \item \textbf{BFS perspective:} Since $\{x, u_1\}$ and $\{x, u_k\}$ are edges in $G$ and $x$ has minimum depth on $C$, both $u_1$ and $u_k$ must be at depth exactly $d(x) + 1$.
+                    
+                    \item \textbf{DFS perspective:} Since $x$ has minimum depth on $C$, all other cycle vertices are descendants of $x$. By the key lemma, the path $x \to u_1 \to \cdots \to u_k$ consists of tree edges, forcing $u_1, u_2, \ldots, u_k$ into a strict ancestor-descendant chain. Thus $d(u_k) \ge d(u_1) + 1 = d(x) + 2$.
+                
+                \end{itemize}                
+                    Contradiction! BFS requires $d(u_k) = d(x)+1$, while DFS requires $d(u_k) \ge d(x)+2$. Therefore $G$ must be a tree.
+                \end{enumerate}
+            \item \textbf{Disprove.} The statement is \textbf{false}. We can disprove it by constructing a counterexample.
+
+        Let $G = (V, E)$ be a directed acyclic graph where:
+        \begin{itemize}
+            \item $V = \{s, A, B, C\}$
+            \item $E = \{(s, A), (s, C), (A, B), (B, C)\}$
+        \end{itemize}
+        
+        \textbf{1. Prove $G$ is a "good directed acyclic graph":} \\
+        Let $T = (V, E')$ be a spanning tree with $E' = \{(s, A), (s, C), (A, B)\}$. 
+        \begin{itemize}
+            \item $T$ is a \textbf{BFS tree}: Starting from $s$, the queue discovers $A$ and $C$ at level 1. Then from $A$, it discovers $B$ at level 2. When exploring $B$'s neighbors, $C$ is already visited. Thus, the non-tree edge $(B, C)$ is safely ignored, and the BFS tree is exactly $T$.
+            \item $T$ is a \textbf{DFS tree}: Suppose the DFS traversal visits neighbor $C$ before $A$. The path goes $s \to C$. $C$ has no outgoing edges, so DFS backtracks to $s$. Next, it visits $s \to A \to B$. At vertex $B$, the only neighbor is $C$. Since $C$ has already been completely explored, $(B, C)$ is classified as a valid \textbf{cross edge} in the directed DFS. The resulting DFS tree is exactly $T$.
+        \end{itemize}
+        Since $T$ is both a DFS tree and a BFS tree, $G$ is a good graph. Also, $G$ clearly contains no cycles, so it is a good DAG.
+        
+        \textbf{2. Prove the contradiction in array $L$:} \\
+        The shortest path distances from $s$ are:
+        $$ dist(s, s) = 0, \quad dist(s, A) = 1, \quad dist(s, C) = 1, \quad dist(s, B) = 2 $$
+        
+        Assume for contradiction that there exists an array $L$ satisfying both conditions:
+        \begin{itemize}
+            \item Because $L$ is a \textbf{topological order} and there exists a directed edge $(B, C) \in E$, vertex $B$ must appear strictly before vertex $C$ in $L$.
+            \item Because $L$ is in a \textbf{non-decreasing order of distances}, the fact that $B$ appears before $C$ implies $dist(s, B) \le dist(s, C)$.
+        \end{itemize}
+        However, $dist(s, B) = 2$ and $dist(s, C) = 1$, which gives $2 \le 1$. This is a contradiction!
+        
+        Therefore, such an array $L$ does not necessarily exist for a good DAG.
+        \end{enumerate}
+    \end{solution}
+
+    \item {\color{purple}(Path)} You are given a directed graph $G$, and a start vertex $u$. Every vertex in the graph contains a non-negative number of points you can collect on the first time you visit the vertex (if you visit the vertex again you get no points the second time, but there’s no penalty). You would like to figure out how many points you could collect in the graph. Design algorithms respectively if 
+    \begin{enumerate}
+        \item $G$ is strongly connected. (hint: you do not have to find the exact path, just the value.)
+        \item $G$ is a DAG. 
+        \item $G$ is any directed graph.
+    \end{enumerate}
+    For (a) and (b), just explain your idea. For (c), give full algorithm along with pseodocode.
+
+    \begin{solution}
+        \begin{enumerate}
+            \item \label{3.a} In a strongly connected graph, there is a path between every pair of vertices. Since there is no penalty for revisiting vertices, we can start at $u$ and navigate through the graph to visit every single vertex. Therefore, the maximum points we can collect is simply the sum of the points of all vertices in $V$.
+            
+            \item \label{3.b} Since there are no cycles, we cannot revisit vertices. The problem translates to finding the maximum-weight path starting from $u$. We can solve this efficiently using \textbf{Topological Sorting} and \textbf{Dynamic Programming}:
+    \begin{itemize}
+        \item First, topologically sort all vertices in the DAG.
+        \item Let $DP[v]$ be the maximum points collected on a path from $u$ to $v$. Initialize $DP[u] = \text{points}[u]$ and $DP[v] = -\infty$ for all other vertices.
+        \item Iterate through the vertices in topological order. For each reachable vertex $x$ and its outgoing edge $(x, y)$, update the maximum points for $y$: 
+        $$DP[y] = \max(DP[y], DP[x] + \text{points}[y])$$
+        \item The maximum points we can collect in the graph is the maximum value in the entire $DP$ array.
+    \end{itemize}
+            \item 
+    \textbf{Idea:} 
+    As we know in \ref{3.a}  we can  find all SCCs and condense each SCC into a single "super-vertex". The weight of this super-vertex is the sum of the points of its constituent nodes. After this graph condensation, the resulting graph $G^{DAG}$ is strictly a DAG. We then locate the super-vertex containing the start node $u$ and apply \ref{3.b} on $G^{DAG}$ to find the maximum collected points.
+
+    \textbf{Algorithm Pseudocode:}
+    
+    \begin{minipage}{\linewidth}
+    \begin{algorithm}[H]
+    \caption{Maximum Points in Arbitrary Directed Graph}
+    \label{alg:arbitrary_directed_path}
+    \KwIn{Directed graph $G = (V, E)$, start vertex $u$, array $points$}
+    \KwOut{Maximum points collectable starting from $u$}
+    
+    $SCC\_map, num\_SCCs \gets \text{FindSCC}(G)$ \tcp*{$SCC\_map[v]$ gives the SCC ID for $v$}
+    
+    Initialize $W[1 \dots num\_SCCs]$ with all $0$s\;
+    Initialize $G^{DAG}$ as an empty graph with $num\_SCCs$ vertices\;
+    
+    \For{each vertex $v \in V$}{
+        $S_v \gets SCC\_map[v]$\;
+        $W[S_v] \gets W[S_v] + points[v]$\;
+        \For{each neighbor $next\_v$ of $v$ in $G$}{
+            $S_{next} \gets SCC\_map[next\_v]$\;
+            \lIf{$S_v \neq S_{next}$ \textbf{and} $(S_v \to S_{next}) \notin G^{DAG}$}{
+                    Add directed edge $(S_v \to S_{next})$ to $G^{DAG}$
+                }
+        }
+    }
+    
+    $TopoOrder \gets \text{TopologicalSort}(G^{DAG})$\;
+    
+    Initialize $DP[1 \dots num\_SCCs]$ with $-\infty$\;
+    $start\_S \gets SCC\_map[u]$\;
+    $DP[start\_S] \gets W[start\_S]$\;
+    $max\_pts \gets DP[start\_S]$\;
+    
+    \For{each super-vertex $S$ in $TopoOrder$}{
+        \If{$DP[S] \neq -\infty$}{
+            \For{each neighbor $next\_S$ of $S$ in $G^{DAG}$}{
+                \If{$DP[S] + W[next\_S] > DP[next\_S]$}{
+                    $DP[next\_S] \gets DP[S] + W[next\_S]$\;
+                }
+            }
+            $max\_pts \gets \max(max\_pts, DP[S])$\;
+        }
+    }
+    \Return $max\_pts$\;
+    \end{algorithm}
+    \end{minipage}
+        \end{enumerate}
+    \end{solution}
+
+    \item {\color{purple}(Flow\&Cut)} Given a bipartite graph $G = (V, E)$ with $n$ vertices and $m$ edges, we want to find the largest \textbf{independent set} $I$, i.e., a subset $I \subseteq V$ such that no two vertices in $I$ are adjacent in $G$. One way to solve the problem is to construct a flow network (a directed graph) $G′ = (V \cup\{s, t\}, E')$, where $s$ is the source and $t$ is the sink. Let $V_L$ and $V_R$ denote the left and right side of $V$ in $G$. For each $u \in V_L$, we add the directed edge $(s, u)$ to $E'$. For each $v \in V_R$, we add the directed edge $(v, t)$ to $E'$. For each $u,v \in E$ with $u \in V_L$ and $v \in V_R$, we add the directed edge $(u, v)$ to $G'$. All edges have capacity $1$. 
+    \begin{enumerate}
+        \item Prove that if there is an independent set in $G$ of size $k$, then there is an $(s, t)$-cut in $G'$ of capacity $n − k$.
+        \item Conversely, prove that if there is an $(s, t)$-cut in $G'$ of capacity $n−k$, then there is an independent set in $G$ of size $k$.
+        \item Conclude that there is a polynomial-time algorithm to compute a largest independent set in $G$.
+    \end{enumerate}
+
+    \begin{solution}
+        \begin{enumerate}
+    \item     
+    Let $I \subseteq V$ be an independent set of size $k$. By the definition of an independent set, no two vertices in $I$ share an edge. 
+    Let $C = V \setminus I$. Since $I$ contains no edges, every edge in $G$ must have at least one endpoint in $C$. Thus, $C$ is a \textbf{vertex cover} of size $n - k$.
+    
+    We construct a cut $(S, T)$ in the flow network $G'$ as follows:
+    \begin{itemize}
+        \item Put the source $s \in S$, and the sink $t \in T$.
+        \item For vertices in $V_L$: if $u \in I$, assign $u \in S$; if $u \in C$, assign $u \in T$.
+        \item For vertices in $V_R$: if $v \in I$, assign $v \in T$; if $v \in C$, assign $v \in S$.
+    \end{itemize}
+    
+    The capacity of the cut $c(S, T)$ is the number of edges directed from $S$ to $T$. Let's analyze the three types of edges in $G'$:
+    \begin{itemize}
+        \item \textbf{Edges $(s, u)$}: This edge crosses from $S$ to $T$ if and only if $u \in T$. By our construction, this means $u \in V_L \cap C$. The number of such edges is $|V_L \cap C|$.
+        \item \textbf{Edges $(v, t)$}: This edge crosses from $S$ to $T$ if and only if $v \in S$. By our construction, this means $v \in V_R \cap C$. The number of such edges is $|V_R \cap C|$.
+        \item \textbf{Edges $(u, v)$ for $u \in V_L, v \in V_R$}: This edge crosses from $S$ to $T$ if and only if $u \in S$ and $v \in T$. By our construction, this requires both $u \in I$ and $v \in I$. However, since $I$ is an independent set, there are absolutely no edges between any vertices in $I$. Thus, no intermediate edges cross from $S$ to $T$.
+    \end{itemize}
+    
+    Summing these up, the total capacity of the cut is:
+    $$c(S, T) = |V_L \cap C| + |V_R \cap C| = |C| = n - k$$
+    Thus, an $(s, t)$-cut of capacity $n - k$ exists.
+
+    \item   Let $(S, T)$ be an $(s, t)$-cut with capacity $n - k$. The capacity is the total number of edges directed from $S$ to $T$. These cut edges can be of three types:
+    $(s, u)$ where $u \in V_L \cap T$, $(v, t)$ where $v \in V_R \cap S$, or intermediate edges $(u, v)$ where $u \in V_L \cap S$ and $v \in V_R \cap T$.
+    
+    We construct a set of vertices $C' \subseteq V$ by picking one endpoint for each cut edge from $S$ to $T$:
+    \begin{itemize}
+        \item For every cut edge $(s, u)$, we add $u$ to $C'$.
+        \item For every cut edge $(v, t)$, we add $v$ to $C'$.
+        \item For every cut edge $(u, v)$ where $u \in V_L \cap S$ and $v \in V_R \cap T$, we add $u$ to $C'$.
+    \end{itemize}
+    Since the capacity is $n - k$, we pick at most one vertex per cut edge, meaning $|C'| \le n - k$.
+    
+    We claim that $C'$ is a \textbf{vertex cover} for $G$. Assume for contradiction that there exists an edge $(x, y) \in E$ (with $x \in V_L, y \in V_R$) that is not covered by $C'$. This means $x \notin C'$ and $y \notin C'$.
+    \begin{itemize}
+        \item Since $x \notin C'$, the edge $(s, x)$ was not cut, so $x$ must be in $S$.
+        \item Since $y \notin C'$, the edge $(y, t)$ was not cut, so $y$ must be in $T$.
+        \item But if $x \in S$ and $y \in T$, the intermediate edge $(x, y)$ crosses from $S$ to $T$. According to our rule, we should have added $x$ to $C'$ for this cut edge, contradicting $x \notin C'$.
+    \end{itemize}
+    Therefore, $C'$ must cover all edges in $G$. 
+    
+    Let $I = V \setminus C'$. Since $C'$ is a vertex cover, its complement $I$ must be an independent set. The size of $I$ is:
+    $$|I| = n - |C'| \ge n - (n - k) = k$$
+    Since we have an independent set of size at least $k$, we can simply select exactly $k$ vertices from it to obtain an independent set of size $k$.
+
+    \item   
+    From the proofs above, finding the \textbf{largest} independent set (maximizing $k$) is mathematically equivalent to finding the \textbf{minimum} $(s, t)$-cut (minimizing $n - k$) in the directed flow network $G'$.
+    
+    According to the Max-Flow Min-Cut Theorem, the minimum capacity of an $(s, t)$-cut equals the maximum flow from $s$ to $t$. The algorithm proceeds as follows:
+    \begin{enumerate}
+        \item Construct the flow network $G'$ from the bipartite graph $G$, assigning a capacity of 1 to all edges.
+        \item Run a polynomial-time maximum flow algorithm to find the max flow and the residual graph.
+        \item Perform a Breadth-First Search (BFS) from $s$ in the residual graph to find the set of reachable vertices, which forms the set $S$ of the minimum $(s, t)$-cut. $T$ is the rest of the vertices.
+        \item Identify the vertex cover $C'$ by extracting $V_L \cap T$ and $V_R \cap S$.
+        \item Return the complement $V \setminus C'$ as the largest independent set.
+    \end{enumerate}
+    Constructing the graph, computing the max flow, and extracting the cut all run in polynomial time. Thus, there is a polynomial-time algorithm to compute the largest independent set in a bipartite graph.
+    
+\end{enumerate}
+    \end{solution}
+    
+\end{enumerate}
+
+%========================================================================
+\end{document}
+
+

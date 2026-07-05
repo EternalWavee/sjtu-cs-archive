@@ -1,0 +1,331 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{ctex}
+\usepackage{amsmath,amscd,amsbsy,amssymb,latexsym,url,bm,amsthm}
+\usepackage{epsfig,graphicx,subfigure}
+\usepackage{enumitem,balance}
+\usepackage{wrapfig}
+\usepackage{mathrsfs,euscript}
+\usepackage[usenames]{xcolor}
+\usepackage{hyperref}
+\usepackage[vlined,ruled,linesnumbered]{algorithm2e}
+\hypersetup{colorlinks=true,linkcolor=black}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{setspace}
+\usepackage{algorithm}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{exercise}{Exercise}
+\newtheorem*{solution}{Solution}
+\newtheorem{definition}{Definition}
+\theoremstyle{definition}
+
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+
+\newcommand{\postscript}[2]
+ {\setlength{\epsfxsize}{#2\hsize}
+  \centerline{\epsfbox{#1}}}
+
+\renewcommand{\baselinestretch}{1.0}
+
+\setlength{\oddsidemargin}{-0.365in}
+\setlength{\evensidemargin}{-0.365in}
+\setlength{\topmargin}{-0.3in}
+\setlength{\headheight}{0in}
+\setlength{\headsep}{0in}
+\setlength{\textheight}{10.1in}
+\setlength{\textwidth}{7in}
+\makeatletter \renewenvironment{proof}[1][Proof] {\par\pushQED{\qed}\normalfont\topsep6\p@\@plus6\p@\relax\trivlist\item[\hskip\labelsep\bfseries#1\@addpunct{.}]\ignorespaces}{\popQED\endtrivlist\@endpefalse} \makeatother
+\makeatletter
+\renewenvironment{solution}[1][Solution] {\par\pushQED{\qed}\normalfont\topsep6\p@\@plus6\p@\relax\trivlist\item[\hskip\labelsep\bfseries#1\@addpunct{.}]\ignorespaces}{\popQED\endtrivlist\@endpefalse} \makeatother
+
+\begin{document}
+\noindent
+
+%========================================================================
+\noindent\framebox[\linewidth]{\shortstack[c]{
+\Large{\textbf{Lab06-Approximation}}\vspace{1mm}\\
+CS2312-Algorithm and complexity, Xiaofeng Gao, Spring 2026.}}
+\begin{center}
+\footnotesize{\color{red}$*$ Contact TA Yixuan Cai for any questions. Include both your .pdf and .tex files in the uploaded .rar or .zip file.}
+
+% Please write down your name, student id and email.
+\footnotesize{\color{blue}$*$ Name:Hengtao Wu  \quad Student ID:524031910038 \quad Email: Eternity\_w@sjtu.edu.cn}
+\end{center}
+
+\begin{enumerate}
+  \item {\color{purple}(Bin Packing)} We are given a list of real numbers $a_1, a_2, \cdots , a_n$ (for any $a_i$, we have $0 < a_i\leq 1$) and we wish to pack them into as few unit-capacity bins as possible. A unit-capacity bin can accommodate any subset of the $a$’s whose sum is at most $1$. This problem is NP-hard (it is even NP-complete to determine if $2$ bins suffice). A simple strategy is to place each $a_i$ in turn into the first bin into which it can fit. Prove that this strategy is a $2$-approximation algorithm for bin-packing.
+
+    \begin{solution}
+    Let First-Fit use \(m\) bins, and let \(B_j\) be the total size of items in bin \(j\). Also let
+    \[
+    S=\sum_{i=1}^n a_i .
+    \]
+    Since each bin has capacity \(1\), we have
+    \[
+    OPT\ge S.
+    \]
+    
+    We claim that for any \(i<j\),
+    \[
+    B_i+B_j>1.
+    \]
+    Indeed, let \(x\) be the first item put into bin \(j\). When \(x\) was considered, it could not fit into bin \(i\), so the load of bin \(i\) was greater than \(1-x\). Since bin \(j\) contains \(x\), we have \(B_j\ge x\). Hence
+    \[
+    B_i+B_j>1-x+x=1.
+    \]
+    
+    Now pair the bins as \((1,2),(3,4),\ldots\). Each pair has total size greater than \(1\). Thus
+    \[
+    S>\frac{m-1}{2}.
+    \]
+    Since \(OPT\ge S\), we get
+    \[
+    m<2OPT+1.
+    \]
+    Because \(m\) and \(OPT\) are integers, this implies
+    \[
+    m\le 2OPT.
+    \]
+    Therefore, First-Fit is a \(2\)-approximation algorithm.
+    \end{solution}
+
+
+  \item {\color{purple}($k$-Center)} The $k$-Center problem is a classic facility location problem in graph theory and combinatorial optimization. Given a complete undirected graph $G = (V, E)$ where vertices represent points (or cities) and edge weights satisfy the triangle inequality (i.e., the distance metric), the goal is to select $k$ vertices as \textbf{centers} such that the maximum distance from any vertex to its nearest center is minimized.
+
+    Formally, let $d(u,v)$ denote the distance (or cost) between vertices $u$ and $v$. We require $d(u,v) = d(v,u) \ge 0$, $d(u,u)=0$, and the triangle inequality $d(u,w) \le d(u,v)+d(v,w)$. The problem asks for a set $C \subseteq V$ with $|C| = k$ that minimizes
+    \[
+    \max_{v \in V} \min_{c \in C} d(v,c).
+    \]
+    The optimal value is called the \textbf{$k$-Center radius} or the \textbf{minimum covering radius}.
+
+    Design a $\frac{1}{2}$-approximation algorithm for $k$-Center problem, and prove the approximation rate of your algorithm.
+
+    \begin{solution}
+    We use the following greedy algorithm. First choose an arbitrary vertex as the first center. Then repeatedly choose the vertex whose distance to the current center set is the largest, until \(k\) centers are chosen. Finally, assign each vertex to its nearest center.
+    
+    \textbf{Algorithm Pseudocode:}
+    
+    \begin{minipage}{\linewidth}
+    \begin{algorithm}[H]
+    \caption{Greedy Algorithm for \(k\)-Center}
+    \KwIn{Complete weighted graph \(G=(V,E)\), distance function \(d\), integer \(k\)}
+    \KwOut{A set \(C\subseteq V\) of \(k\) centers}
+    
+    Choose an arbitrary vertex \(c_1\in V\)\;
+    \(C\gets \{c_1\}\)\;
+    
+    \While{\(|C|<k\)}{
+        \For{each vertex \(v\in V\)}{
+            \(dist[v]\gets \min_{c\in C} d(v,c)\)\;
+        }
+        \(x\gets \arg\max_{v\in V} dist[v]\)\;
+        \(C\gets C\cup \{x\}\)\;
+    }
+    
+    \Return \(C\)\;
+    \end{algorithm}
+    \end{minipage}
+    
+    Now we prove that this is a \(2\)-approximation algorithm.
+    
+    Let the centers chosen by the algorithm be
+    \[
+    c_1,c_2,\ldots,c_k.
+    \]
+    Let the radius of the solution returned by the algorithm be
+    \[
+    r=\max_{v\in V}\min_{c\in C}d(v,c).
+    \]
+    Choose a vertex \(v\) such that
+    \[
+    \min_{c\in C}d(v,c)=r.
+    \]
+    Then consider the following \(k+1\) vertices:
+    \[
+    c_1,c_2,\ldots,c_k,v.
+    \]
+    
+    We claim that any two of these \(k+1\) vertices have distance at least \(r\). This is because each \(c_i\) was chosen as the farthest vertex from the previously chosen centers, and the final radius is \(r\). Also, \(v\) has distance \(r\) from its nearest chosen center, so it is at distance at least \(r\) from every \(c_i\).
+    
+    Now consider an optimal solution with radius \(OPT\). It uses only \(k\) centers, so it partitions all vertices into \(k\) clusters, each with radius at most \(OPT\).
+    
+    Since we have \(k+1\) vertices
+    \[
+    c_1,c_2,\ldots,c_k,v
+    \]
+    but only \(k\) optimal clusters, by the pigeonhole principle, two of these vertices must lie in the same optimal cluster. Suppose they are \(x\) and \(y\), and the optimal center of this cluster is \(o\). Then
+    \[
+    d(x,o)\le OPT,\qquad d(y,o)\le OPT.
+    \]
+    By the triangle inequality,
+    \[
+    d(x,y)\le d(x,o)+d(o,y)\le 2OPT.
+    \]
+    But from the claim above,
+    \[
+    d(x,y)\ge r.
+    \]
+    Therefore,
+    \[
+    r\le 2OPT.
+    \]
+    
+    Hence the radius returned by the greedy algorithm is at most twice the optimal radius. Therefore, the algorithm is a \(2\)-approximation algorithm for the \(k\)-Center problem.
+    \end{solution}
+
+
+  \item {\color{purple}(Weighted Vertex Cover)} Consider the \textbf{weighted vertex cover problem}: Given an undirected graph $G=(V,E)$ with nonnegative vertex weights $w_v \ge 0$ for each $v \in V$, find a subset $C \subseteq V$ such that every edge $e=(u,v)\in E$ has at least one endpoint in $C$ (i.e., $C$ covers all edges), and the total weight $\sum_{v\in C} w_v$ is minimized.
+
+\begin{enumerate}
+    \item Write an \textbf{Integer Linear Programming} (ILP) formulation for the problem and its \textbf{Linear Programming Relaxation} (LP Relaxation).
+    \item Design a \textbf{deterministic rounding approximation algorithm} based on the optimal LP solution. Describe the algorithm steps.
+    \item Prove that your algorithm is a \textbf{2-approximation algorithm} (i.e., for every instance, the weight of the solution output is at most twice the optimal value).
+    \item Give a tight example showing that the approximation ratio cannot be better than 2 (i.e., there exists an instance where the algorithm output is exactly twice the optimal solution).
+\end{enumerate}
+
+
+  
+  \begin{solution}
+    For each vertex \(v\in V\), define a variable
+    \[
+    x_v=
+    \begin{cases}
+    1, & \text{if } v \text{ is chosen in the vertex cover},\\
+    0, & \text{otherwise}.
+    \end{cases}
+    \]
+    
+    \textbf{(1) ILP and LP relaxation.}
+    
+    The integer linear programming formulation is
+    \[
+    \begin{aligned}
+    \min \quad & \sum_{v\in V} w_v x_v \\
+    \text{s.t.}\quad & x_u+x_v\ge 1, && \forall (u,v)\in E,\\
+    & x_v\in \{0,1\}, && \forall v\in V.
+    \end{aligned}
+    \]
+    
+    The LP relaxation is obtained by replacing \(x_v\in\{0,1\}\) with \(0\le x_v\le 1\):
+    \[
+    \begin{aligned}
+    \min \quad & \sum_{v\in V} w_v x_v \\
+    \text{s.t.}\quad & x_u+x_v\ge 1, && \forall (u,v)\in E,\\
+    & 0\le x_v\le 1, && \forall v\in V.
+    \end{aligned}
+    \]
+    
+    \textbf{(2) Deterministic rounding algorithm.}
+    
+    We first solve the LP relaxation and obtain an optimal solution \(x^*\). Then we round it as follows:
+    \[
+    C=\left\{v\in V:x_v^*\ge \frac12\right\}.
+    \]
+    
+    \textbf{Algorithm Pseudocode:}
+    
+    \begin{minipage}{\linewidth}
+    \begin{algorithm}[H]
+    \caption{LP Rounding for Weighted Vertex Cover}
+    \KwIn{Undirected graph \(G=(V,E)\), vertex weights \(w_v\ge 0\)}
+    \KwOut{A vertex cover \(C\)}
+    
+    Solve the LP relaxation and obtain an optimal solution \(x^*\)\;
+    \(C\gets \emptyset\)\;
+    
+    \For{each vertex \(v\in V\)}{
+        \If{\(x_v^*\ge \frac12\)}{
+            \(C\gets C\cup\{v\}\)\;
+        }
+    }
+    
+    \Return \(C\)\;
+    \end{algorithm}
+    \end{minipage}
+    
+    \textbf{(3) Proof of the approximation ratio.}
+    
+    First, we prove that \(C\) is a valid vertex cover. For any edge \((u,v)\in E\), the LP constraint gives
+    \[
+    x_u^*+x_v^*\ge 1.
+    \]
+    Thus at least one of \(x_u^*\) and \(x_v^*\) is at least \(\frac12\). Therefore, at least one of \(u\) and \(v\) is chosen into \(C\). Hence \(C\) covers every edge.
+    
+    Now we prove the approximation ratio. Let \(ALG\) be the weight of the solution returned by the algorithm. Then
+    \[
+    ALG=\sum_{v\in C}w_v.
+    \]
+    For every \(v\in C\), we have \(x_v^*\ge \frac12\), so
+    \[
+    1\le 2x_v^*.
+    \]
+    Therefore,
+    \[
+    w_v\le 2w_vx_v^*.
+    \]
+    Summing over all vertices in \(C\), we get
+    \[
+    ALG=\sum_{v\in C}w_v
+    \le \sum_{v\in C}2w_vx_v^*
+    \le 2\sum_{v\in V}w_vx_v^*.
+    \]
+    The value \(\sum_{v\in V}w_vx_v^*\) is the optimal LP value, denoted by \(LP\). Hence
+    \[
+    ALG\le 2LP.
+    \]
+    Since the LP relaxation is a relaxation of the ILP, we have
+    \[
+    LP\le OPT.
+    \]
+    Therefore,
+    \[
+    ALG\le 2LP\le 2OPT.
+    \]
+    Thus the algorithm is a \(2\)-approximation algorithm.
+    
+    \textbf{(4) Tight example.}
+    
+    Consider a graph with two vertices \(u,v\) and one edge \((u,v)\). Let
+    \[
+    w_u=w_v=1.
+    \]
+    The optimal integral solution chooses only one endpoint, so
+    \[
+    OPT=1.
+    \]
+    For the LP relaxation, the solution
+    \[
+    x_u^*=x_v^*=\frac12
+    \]
+    is optimal, with LP value \(1\). By the rounding rule, both vertices are chosen, so
+    \[
+    C=\{u,v\}.
+    \]
+    Thus
+    \[
+    ALG=2.
+    \]
+    Therefore,
+    \[
+    \frac{ALG}{OPT}=2.
+    \]
+    This shows that the approximation ratio of this rounding algorithm is tight.
+    \end{solution}
+
+
+
+
+
+\end{enumerate}
+
+%========================================================================
+\end{document}
+
+

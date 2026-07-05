@@ -17,8 +17,10 @@ A collection of course materials from my undergraduate Computer Science studies 
 Computer Organization|[CS2307](./CS2307/)|
 Data Structure|[CS0501](./CS0501/)|
 Problem Solving & Practice|[CS2309](./CS2309/)|
-Modern Operating Systems|[CS2311](./CS2311/)|
+Modern Operating Systems (Advanced)|[CS2311](./CS2311/)|
 Computer Architecture Lab|[CS2306](./CS2306/)|
+Algorithms & Complexity (Advanced)|[CS2312](./CS2312/)|
+Mathematical Foundations of CS|[CS2314](./CS2314/)|
 Operating System Design (C-Agent)|[CS2313](./CS2313/)|
 Discrete Mathematics|[CS2501](./CS2501/)|
 Calculus|[MATH1201(1202)/](./MATH1201(1202)/)|
