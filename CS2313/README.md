@@ -9,7 +9,11 @@
 
 上海交通大学 **CS2313 操作系统课程设计（2026 春季学期）**。
 
-## C Agent
+## Project1 — Shell / LLM / ThreadPool (`Project1/`)
+
+三个基础模块：C 字符串处理 Shell、LLM HTTP 客户端、pthread 线程池实现。
+
+## Project2 — C Agent
 
 > **项目地址：** https://github.com/EternalWavee/c-agent
 
